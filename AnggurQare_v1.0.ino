@@ -1,23 +1,36 @@
+#include "DHT.h"
+#include "Wire.h"
+#include "ModbusRtu.h"
+#include "SPI.h"
+
 #define soilPin A0
 #define relayPump1 2
 #define relayPump2 7
+#define relayMist 8
 #define waterLevelHigh 3
 #define waterLevelLow 4
 #define echoPin 5
 #define triggerPin 6
+#define dhtPin 9
 #define maxDistance 200
+
+DHT myDHT(dhtPin, DHT22);
 
 int soilPercentage;
 int readSoil;
 int waterLevel;
+float temperature;
+float humidity;
 bool waterState = true;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  myDHT.begin();
   Serial.println("Machine ON");
   pinMode(relayPump1, OUTPUT);
   pinMode(relayPump2, OUTPUT);
+  pinMode(relayMist, OUTPUT);
   pinMode(waterLevelHigh, INPUT);
   pinMode(waterLevelLow, INPUT);
   pinMode(triggerPin, OUTPUT);
@@ -45,8 +58,20 @@ void loop() {
           waterState = true;
         }
     }
-
-//WaterPump for Hydroponics Set-Up
+  
+  //MistMaker and DHT Set-Up
+  temperature = myDHT.readTemperature();
+  humidity = myDHT.readHumidity();
+  if (humidity <= 70)
+    {
+      digitalWrite(relayMist, HIGH);
+    }
+  else
+    {
+      digitalWrite(relayMist, LOW);
+    }
+  
+  //WaterPump for Hydroponics Set-Up
   readSoil = analogRead(soilPin);
   soilPercentage = map(readSoil, 0, 1023, 0, 100);
   if (soilPercentage <= 70)
