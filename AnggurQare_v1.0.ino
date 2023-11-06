@@ -7,8 +7,6 @@
 #define relayPump1 2
 #define relayPump2 7
 #define relayMist 8
-#define waterLevelHigh 3
-#define waterLevelLow 4
 #define echoPin 5
 #define triggerPin 6
 #define dhtPin 9
@@ -31,8 +29,6 @@ void setup() {
   pinMode(relayPump1, OUTPUT);
   pinMode(relayPump2, OUTPUT);
   pinMode(relayMist, OUTPUT);
-  pinMode(waterLevelHigh, INPUT);
-  pinMode(waterLevelLow, INPUT);
   pinMode(triggerPin, OUTPUT);
   pinMode(echoPin, INPUT); //or use INPUT_PULLUP if trouble
   digitalWrite(triggerPin, LOW);
