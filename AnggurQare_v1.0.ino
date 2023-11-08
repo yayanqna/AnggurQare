@@ -77,6 +77,11 @@ void loop() {
   //WaterPump for Tank Set-Up use Ultrasonic sensor
   Distance = getDistance();
   waterLevel = map(Distance, 20, 5, 0, 100);
+  Serial.print("x5.val=");
+  Serial.print(waterLevel);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
   if (waterLevel < 100 && waterState == true)
     {
       digitalWrite(waterValvePin, HIGH);
@@ -98,6 +103,11 @@ void loop() {
   myTDS.setTemperature(temperature);
   myTDS.update();
   tdsValue = myTDS.getTdsValue();
+  Serial.print("x2.val=");
+  Serial.print(tdsValue);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
   if (waterLevel == 100 && tdsValue < 1000 && waterState == false)
     {
       digitalWrite(nutritionValvePin, HIGH);
@@ -111,7 +121,17 @@ void loop() {
   
   //MistMaker and DHT Set-Up use DHT22 sensor
   temperature = myDHT.readTemperature();
+  Serial.print("x6.val=");
+  Serial.print(temperature);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
   humidity = myDHT.readHumidity();
+  Serial.print("x8.val=");
+  Serial.print(humidity);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
   if (humidity <= 70)
     {
       digitalWrite(relayMistPin, HIGH);
@@ -124,17 +144,42 @@ void loop() {
   //Monitoring Soil pH use Soil pH sensor
   readPH = analogRead(pHPin);
   soilPH = (-0.0693 * readPH) + 7.3855;
+  Serial.print("x0.val=");
+  Serial.print(soilPH);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
 
   //Monitoring Light Intensity use BH1750
   readLux = luxMeter.readLightLevel();
+  Serial.print("x7.val=");
+  Serial.print(readLux);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
 
   //Monitoring pH and Temp of Water and Nutrition use PH4502C
   waterPH = PH4502C.read_ph_level();
+  Serial.print("x3.val=");
+  Serial.print(waterPH);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
   waterTemp = PH4502C.read_temp();
+  Serial.print("x4.val=");
+  Serial.print(waterTemp);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
   
   //WaterPump for Hydroponics Set-Up use Soil Moist sensor
   readSoil = analogRead(soilPin);
   soilPercentage = map(readSoil, 0, 1023, 0, 100);
+  Serial.print("x1.val=");
+  Serial.print(soilPercentage);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
   if (soilPercentage <= 70)
     {
       digitalWrite(relayPump1Pin, HIGH);
