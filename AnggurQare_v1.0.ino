@@ -34,8 +34,8 @@ BH1750 luxMeter(0x23);
 PH4502C_Sensor PH4502C(waterPHPin, waterTempPin, pHCalibration, pHReadingInterval, pHReadingCount, ADCResolution);
 
 //Monitoring Variables
-int soilPercentage;
-int waterLevel;
+float soilPercentage;
+float waterLevel;
 float temperature;
 float humidity;
 float waterPH;
