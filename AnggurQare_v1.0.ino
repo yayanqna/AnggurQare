@@ -30,7 +30,7 @@
 
 DHT myDHT(dhtPin, DHT22);
 GravityTDS myTDS;
-BH1750 luxMeter(0x23);
+BH1750 luxMeter(0x23); //or change to 0x5C if trouble
 PH4502C_Sensor PH4502C(waterPHPin, waterTempPin, pHCalibration, pHReadingInterval, pHReadingCount, ADCResolution);
 
 //Monitoring Variables
