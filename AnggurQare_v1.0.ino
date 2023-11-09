@@ -33,6 +33,17 @@ GravityTDS myTDS;
 BH1750 luxMeter(0x23); //or change to 0x5C if trouble
 PH4502C_Sensor PH4502C(waterPHPin, waterTempPin, pHCalibration, pHReadingInterval, pHReadingCount, ADCResolution);
 
+//Nextion HMI component for Waveform
+NexWaveform soilPHWave = NexWaveform (1,1,"s0"); 
+NexWaveform soilMoistureWave = NexWaveform (2,1,"s0"); 
+NexWaveform nutritionWave = NexWaveform (3,1,"s0"); 
+NexWaveform waterPHWave = NexWaveform (4,1,"s0"); 
+NexWaveform waterTempWave = NexWaveform (5,1,"s0"); 
+NexWaveform waterLevelWave = NexWaveform (6,1,"s0"); 
+NexWaveform temperatureWave = NexWaveform (7,1,"s0"); 
+NexWaveform lightnessWave = NexWaveform (8,1,"s0"); 
+NexWaveform humidityWave = NexWaveform (9,1,"s0"); 
+
 //Monitoring Variables
 float soilPercentage;
 float waterLevel;
@@ -52,6 +63,7 @@ int Distance = 0;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  nexInit();
   myDHT.begin();
   Wire.begin();
   luxMeter.begin();
@@ -77,11 +89,13 @@ void loop() {
   //WaterPump for Tank Set-Up use Ultrasonic sensor
   Distance = getDistance();
   waterLevel = map(Distance, 20, 5, 0, 100);
-  Serial.print("x5.val=");
+  Serial.print("mainPage.x5.val=");
   Serial.print(waterLevel);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  waterLevelWave.addValue(0, waterLevel);
+
   if (waterLevel < 100 && waterState == true)
     {
       digitalWrite(waterValvePin, HIGH);
@@ -103,11 +117,13 @@ void loop() {
   myTDS.setTemperature(temperature);
   myTDS.update();
   tdsValue = myTDS.getTdsValue();
-  Serial.print("x2.val=");
+  Serial.print("mainPage.x2.val=");
   Serial.print(tdsValue);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  nutritionWave.addValue(0, tdsValue);
+
   if (waterLevel == 100 && tdsValue < 1000 && waterState == false)
     {
       digitalWrite(nutritionValvePin, HIGH);
@@ -121,17 +137,21 @@ void loop() {
   
   //MistMaker and DHT Set-Up use DHT22 sensor
   temperature = myDHT.readTemperature();
-  Serial.print("x6.val=");
+  Serial.print("mainPage.x6.val=");
   Serial.print(temperature);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  temperatureWave.addValue(0, temperature);
+
   humidity = myDHT.readHumidity();
-  Serial.print("x8.val=");
+  Serial.print("mainPage.x8.val=");
   Serial.print(humidity);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  humidityWave.addValue(0, humidity);
+
   if (humidity <= 70)
     {
       digitalWrite(relayMistPin, HIGH);
@@ -144,42 +164,49 @@ void loop() {
   //Monitoring Soil pH use Soil pH sensor
   readPH = analogRead(pHPin);
   soilPH = (-0.0693 * readPH) + 7.3855;
-  Serial.print("x0.val=");
+  Serial.print("mainPage.x0.val=");
   Serial.print(soilPH);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  soilPHWave.addValue(0, readPH);
 
   //Monitoring Light Intensity use BH1750
   readLux = luxMeter.readLightLevel();
-  Serial.print("x7.val=");
+  Serial.print("mainPage.x7.val=");
   Serial.print(readLux);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  lightnessWave.addValue(0, readLux);
 
   //Monitoring pH and Temp of Water and Nutrition use PH4502C
   waterPH = PH4502C.read_ph_level();
-  Serial.print("x3.val=");
+  Serial.print("mainPage.x3.val=");
   Serial.print(waterPH);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  waterPHWave.addValue(0, waterPH);
+
   waterTemp = PH4502C.read_temp();
-  Serial.print("x4.val=");
+  Serial.print("mainPage.x4.val=");
   Serial.print(waterTemp);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  waterTempWave.addValue(0, waterTemp);
   
   //WaterPump for Hydroponics Set-Up use Soil Moist sensor
   readSoil = analogRead(soilPin);
   soilPercentage = map(readSoil, 0, 1023, 0, 100);
-  Serial.print("x1.val=");
+  Serial.print("mainPage.x1.val=");
   Serial.print(soilPercentage);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  soilMoistureWave.addValue(0, soilPercentage);
+
   if (soilPercentage <= 70)
     {
       digitalWrite(relayPump1Pin, HIGH);
