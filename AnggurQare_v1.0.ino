@@ -59,10 +59,12 @@ int readSoil;
 bool waterState = true;
 int readPH;
 int Distance = 0;
+String sendToESP = "";
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  Serial1.begin(115200);
   nexInit();
   myDHT.begin();
   Wire.begin();
@@ -85,82 +87,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-
-  //WaterPump for Tank Set-Up use Ultrasonic sensor
-  Distance = getDistance();
-  waterLevel = map(Distance, 20, 5, 0, 100);
-  Serial.print("mainPage.x5.val=");
-  Serial.print(waterLevel);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  waterLevelWave.addValue(0, waterLevel);
-
-  if (waterLevel < 100 && waterState == true)
-    {
-      digitalWrite(waterValvePin, HIGH);
-      digitalWrite(relayPump2Pin, HIGH);
-    }
-  else
-    {
-      digitalWrite(relayPump2Pin, LOW);
-      digitalWrite(waterValvePin, LOW);
-      waterState = false;
-
-      if (waterLevel <= 10)
-        {
-          waterState = true;
-        }
-    }
-
-  //Monitoring myTDS and Setting up the Nutrition use TDS sensor
-  myTDS.setTemperature(temperature);
-  myTDS.update();
-  tdsValue = myTDS.getTdsValue();
-  Serial.print("mainPage.x2.val=");
-  Serial.print(tdsValue);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  nutritionWave.addValue(0, tdsValue);
-
-  if (waterLevel == 100 && tdsValue < 1000 && waterState == false)
-    {
-      digitalWrite(nutritionValvePin, HIGH);
-      digitalWrite(relayPump2Pin, HIGH);
-    }
-  else
-    {
-      digitalWrite(relayPump2Pin, LOW);
-      digitalWrite(nutritionValvePin, LOW);
-    }
-  
-  //MistMaker and DHT Set-Up use DHT22 sensor
-  temperature = myDHT.readTemperature();
-  Serial.print("mainPage.x6.val=");
-  Serial.print(temperature);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  temperatureWave.addValue(0, temperature);
-
-  humidity = myDHT.readHumidity();
-  Serial.print("mainPage.x8.val=");
-  Serial.print(humidity);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  humidityWave.addValue(0, humidity);
-
-  if (humidity <= 70)
-    {
-      digitalWrite(relayMistPin, HIGH);
-    }
-  else
-    {
-      digitalWrite(relayMistPin, LOW);
-    }
-
   //Monitoring Soil pH use Soil pH sensor
   readPH = analogRead(pHPin);
   soilPH = (-0.0693 * readPH) + 7.3855;
@@ -196,10 +122,48 @@ void loop() {
   Serial.write(0xff);
   Serial.write(0xff);
   waterTempWave.addValue(0, waterTemp);
-  
+
+  //WaterPump for Tank Set-Up use Ultrasonic sensor
+  Distance = getDistance();
+  waterLevel = map(Distance, 20, 5, 0, 100);
+  Serial.print("mainPage.x5.val=");
+  Serial.print(waterLevel);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  waterLevelWave.addValue(0, waterLevel);
+
+  //Monitoring myTDS and Setting up the Nutrition use TDS sensor
+  myTDS.setTemperature(waterTemp); //or use "temperature" from DHT22
+  myTDS.update();
+  tdsValue = myTDS.getTdsValue();
+  Serial.print("mainPage.x2.val=");
+  Serial.print(tdsValue);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  nutritionWave.addValue(0, tdsValue);
+
+  //MistMaker and DHT Set-Up use DHT22 sensor
+  temperature = myDHT.readTemperature();
+  Serial.print("mainPage.x6.val=");
+  Serial.print(temperature);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  temperatureWave.addValue(0, temperature);
+
+  humidity = myDHT.readHumidity();
+  Serial.print("mainPage.x8.val=");
+  Serial.print(humidity);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  humidityWave.addValue(0, humidity);
+
   //WaterPump for Hydroponics Set-Up use Soil Moist sensor
   readSoil = analogRead(soilPin);
-  soilPercentage = map(readSoil, 0, 1023, 0, 100);
+  soilPercentage = map(readSoil, 0, 1023, 100, 0);
   Serial.print("mainPage.x1.val=");
   Serial.print(soilPercentage);
   Serial.write(0xff);
@@ -207,6 +171,68 @@ void loop() {
   Serial.write(0xff);
   soilMoistureWave.addValue(0, soilPercentage);
 
+  //send data to ESP
+  sendToESP = "";
+  sendToESP += soilPH;
+  sendToESP += ";";
+  sendToESP += readLux;
+  sendToESP += ";";
+  sendToESP += waterPH;
+  sendToESP += ";";
+  sendToESP += waterTemp;
+  sendToESP += ";";
+  sendToESP += waterLevel;
+  sendToESP += ";";
+  sendToESP += tdsValue;
+  sendToESP + ";";
+  sendToESP += temperature;
+  sendToESP += ";";
+  sendToESP += humidity;
+  sendToESP += ";";
+  sendToESP += soilPercentage;
+  Serial1.println(sendToESP);
+
+  //Logic for fill Water Tank
+  if (waterLevel < 100 && waterState == true)
+    {
+      digitalWrite(waterValvePin, HIGH);
+      digitalWrite(relayPump2Pin, HIGH);
+    }
+  else
+    {
+      digitalWrite(relayPump2Pin, LOW);
+      digitalWrite(waterValvePin, LOW);
+      waterState = false;
+
+      if (waterLevel <= 10)
+        {
+          waterState = true;
+        }
+    }
+
+  //Logic for Refill Nutrition 
+  if (waterLevel == 100 && tdsValue < 1000 && waterState == false)
+    {
+      digitalWrite(nutritionValvePin, HIGH);
+      digitalWrite(relayPump2Pin, HIGH);
+    }
+  else
+    {
+      digitalWrite(relayPump2Pin, LOW);
+      digitalWrite(nutritionValvePin, LOW);
+    }
+  
+  //Logic for Mist Maker to humid the environment
+  if (humidity < 70 && tdsValue > 900 && waterState == false)
+    {
+      digitalWrite(relayMistPin, HIGH);
+    }
+  else
+    {
+      digitalWrite(relayMistPin, LOW);
+    }
+  
+  //Logic for Watering the Hydroponics
   if (soilPercentage <= 70)
     {
       digitalWrite(relayPump1Pin, HIGH);
