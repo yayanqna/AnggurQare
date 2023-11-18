@@ -3,10 +3,10 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 
-const char *ssid = "DTEO-VOKASI 2.4 Ghz";  
-const char *password = "TEO123456";
+const char *ssid = "ITS-WIFI1-2G";  
+const char *password = "itssurabaya";
 
-float humidity, temperature;
+float soilPH, readLux, waterPH, waterTemp, waterLevel, tdsValue, temperature, humidity, soilPercentage;
 
 void setup() {
   // put your setup code here, to run once:
@@ -60,25 +60,45 @@ void loop() {
       msg += char(Serial.read());
       delay(50);
     }
-
-    humidity = splitString(msg, ';', 0).toFloat();
-    temperature = splitString(msg, ';', 1).toFloat();
-    kirimDataKeServer();
+    soilPH = splitString(msg, ';', 0).toFloat();
+    readLux = splitString(msg, ';', 1).toFloat();
+    waterPH = splitString(msg, ';', 2).toFloat();
+    waterTemp = splitString(msg, ';', 3).toFloat();
+    waterLevel = splitString(msg, ';', 4).toFloat();
+    tdsValue = splitString(msg, ';', 5).toFloat();
+    temperature = splitString(msg, ';', 6).toFloat();
+    humidity = splitString(msg, ';', 7).toFloat();
+    soilPercentage = splitString(msg, ';', 8).toFloat();
+    sendDataToServer();
 //    Serial.print(msg);
   }
 }
 
-void kirimDataKeServer(){
+void sendDataToServer(){
   WiFiClient client;
   HTTPClient http;    //Declare object of class HTTPClient
   String postData;
   //Post Data
-  postData = "humidity=";
-  postData += humidity;
+  postData = "soil_ph=";
+  postData += soilPH;
+  postData += "&lightness=";
+  postData += readLux;
+  postData += "&water_ph=";
+  postData += waterPH;
+  postData += "&water_temp=";
+  postData += waterTemp;
+  postData += "&water_level=";
+  postData += waterLevel;
+  postData += "&nutrition_tds=";
+  postData += tdsValue;
   postData += "&temperature=";
   postData += temperature;
+  postData += "&humidity=";
+  postData += humidity;
+  postData += "&soil_moisture=";
+  postData += soilPercentage;
   
-  http.begin(client, "http://10.17.41.30/websensor/server.php");
+  http.begin(client, "http://10.8.108.42/AnggurQare_v1.0/server.php");
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       
   int httpCode = http.POST(postData);   //Send the request

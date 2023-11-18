@@ -31,18 +31,48 @@
 DHT myDHT(dhtPin, DHT22);
 GravityTDS myTDS;
 BH1750 luxMeter(0x23); //or change to 0x5C if trouble
-PH4502C_Sensor PH4502C(waterPHPin, waterTempPin, pHCalibration, pHReadingInterval, pHReadingCount, ADCResolution);
+PH4502C_Sensor PH4502C(
+  waterPHPin, 
+  waterTempPin, 
+  pHCalibration, 
+  pHReadingInterval, 
+  pHReadingCount, 
+  ADCResolution
+  );
 
 //Nextion HMI component for Waveform
-NexWaveform soilPHWave = NexWaveform (1,1,"s0"); 
-NexWaveform soilMoistureWave = NexWaveform (2,1,"s0"); 
-NexWaveform nutritionWave = NexWaveform (3,1,"s0"); 
-NexWaveform waterPHWave = NexWaveform (4,1,"s0"); 
-NexWaveform waterTempWave = NexWaveform (5,1,"s0"); 
-NexWaveform waterLevelWave = NexWaveform (6,1,"s0"); 
-NexWaveform temperatureWave = NexWaveform (7,1,"s0"); 
-NexWaveform lightnessWave = NexWaveform (8,1,"s0"); 
-NexWaveform humidityWave = NexWaveform (9,1,"s0"); 
+NexWaveform soilPHWave = NexWaveform(1, 1, "s0"); 
+NexWaveform soilMoistureWave = NexWaveform(2, 1, "s0"); 
+NexWaveform nutritionWave = NexWaveform(3, 1, "s0"); 
+NexWaveform waterPHWave = NexWaveform(4, 1, "s0"); 
+NexWaveform waterTempWave = NexWaveform(5, 1, "s0"); 
+NexWaveform waterLevelWave = NexWaveform(6, 1, "s0"); 
+NexWaveform temperatureWave = NexWaveform(7, 1, "s0"); 
+NexWaveform lightnessWave = NexWaveform(8, 1, "s0"); 
+NexWaveform humidityWave = NexWaveform(9, 1, "s0"); 
+
+//Nextion HMI component for Control Button
+NexButton waterControlOn = NexButton(10, 1, "b0"); 
+NexButton waterControlOff = NexButton(10, 2, "b1");
+NexButton hydroponicsControlOn = NexButton(10, 3, "b2");
+NexButton hydroponicsControlOff = NexButton(10, 4, "b3");
+NexButton nutritionControlOn = NexButton(10, 5, "b4");
+NexButton nutritionControlOff = NexButton(10, 6, "b5");
+NexButton humidityControlOn = NexButton(10, 7, "b6");
+NexButton humidityControlOff = NexButton(10, 8, "b7");
+
+NexTouch *nex_listen_list[] = 
+{
+  &waterControlOn,
+  &waterControlOff,
+  &hydroponicsControlOn,
+  &hydroponicsControlOff,
+  &nutritionControlOn,
+  &nutritionControlOff,
+  &humidityControlOn,
+  &humidityControlOff,
+  NULL
+};
 
 //Monitoring Variables
 float soilPercentage;
@@ -60,6 +90,51 @@ bool waterState = true;
 int readPH;
 int Distance = 0;
 String sendToESP = "";
+
+//HMI function for each button
+void waterSetOn(void *ptr)
+{
+  digitalWrite(waterValvePin, HIGH);
+  digitalWrite(relayPump2Pin, HIGH);
+}
+
+void waterSetOff(void *ptr)
+{
+  digitalWrite(relayPump2Pin, LOW);
+  digitalWrite(waterValvePin, LOW);
+}
+
+void hydroponicsSetOn(void *ptr)
+{
+  digitalWrite(relayPump1Pin, HIGH);
+}
+
+void hydroponicsSetOff(void *ptr)
+{
+  digitalWrite(relayPump1Pin, LOW);
+}
+
+void nutritionSetOn(void *ptr)
+{
+  digitalWrite(nutritionValvePin, HIGH);
+  digitalWrite(relayPump2Pin, HIGH); 
+}
+
+void nutritionSetOff(void *ptr)
+{
+  digitalWrite(relayPump2Pin, LOW);
+  digitalWrite(nutritionValvePin, LOW);
+}
+
+void humiditySetOn(void *ptr)
+{
+  digitalWrite(relayMistPin, HIGH); 
+}
+
+void humiditySetOff(void *ptr)
+{
+  digitalWrite(relayMistPin, LOW); 
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -83,6 +158,16 @@ void setup() {
   myTDS.begin();
   PH4502C.init();
   digitalWrite(triggerPin, LOW);
+
+  //Nextion initialization
+  waterControlOn.attachPush(waterSetOn);
+  waterControlOff.attachPush(waterSetOff);
+  hydroponicsControlOn.attachPush(hydroponicsSetOn);
+  hydroponicsControlOff.attachPush(hydroponicsSetOff);
+  nutritionControlOn.attachPush(nutritionSetOn);
+  nutritionControlOff.attachPush(nutritionSetOff);
+  humidityControlOn.attachPush(humiditySetOn);
+  humidityControlOff.attachPush(humiditySetOff);
 }
 
 void loop() {
@@ -241,6 +326,8 @@ void loop() {
     {
       digitalWrite(relayPump1Pin, LOW);
     }
+
+  nexLoop(nex_listen_list);
 }
 
 //Ultrasonic Function
