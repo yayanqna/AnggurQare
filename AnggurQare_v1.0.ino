@@ -61,6 +61,9 @@ NexButton nutritionControlOff = NexButton(10, 6, "b5");
 NexButton humidityControlOn = NexButton(10, 7, "b6");
 NexButton humidityControlOff = NexButton(10, 8, "b7");
 
+NexButton closeLoopMode = NexButton(10, 10, "b9");
+NexButton openLoopMode = NexButton(10, 11, "b10");
+
 NexTouch *nex_listen_list[] = 
 {
   &waterControlOn,
@@ -71,6 +74,13 @@ NexTouch *nex_listen_list[] =
   &nutritionControlOff,
   &humidityControlOn,
   &humidityControlOff,
+  NULL
+};
+
+NexTouch *changeModeList[] =
+{
+  &closeLoopMode,
+  &openLoopMode,
   NULL
 };
 
@@ -85,6 +95,7 @@ float soilPH;
 float tdsValue;
 float readLux;
 
+bool operationMode = 0;
 int readSoil;
 bool waterState = true;
 int readPH;
@@ -136,6 +147,17 @@ void humiditySetOff(void *ptr)
   digitalWrite(relayMistPin, LOW); 
 }
 
+void setCloseLoopMode(void *ptr)
+{
+  operationMode = 0;
+}
+
+void setOpenLoopMode(void *ptr)
+{
+  operationMode = 1;
+}
+
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -168,6 +190,8 @@ void setup() {
   nutritionControlOff.attachPush(nutritionSetOff);
   humidityControlOn.attachPush(humiditySetOn);
   humidityControlOff.attachPush(humiditySetOff);
+  closeLoopMode.attachPush(setCloseLoopMode);
+  openLoopMode.attachPush(setOpenLoopMode);
 }
 
 void loop() {
@@ -295,7 +319,14 @@ void loop() {
         }
     }
 
-  //Logic for Refill Nutrition 
+  switch(operationMode)
+  {
+    case 1:
+    nexLoop(nex_listen_list);
+    break;
+
+    default:
+    //Logic for Refill Nutrition 
   if (waterLevel == 100 && tdsValue < 1000 && waterState == false)
     {
       digitalWrite(nutritionValvePin, HIGH);
@@ -326,8 +357,12 @@ void loop() {
     {
       digitalWrite(relayPump1Pin, LOW);
     }
+    
+  }
 
-  nexLoop(nex_listen_list);
+  nexLoop(changeModeList);
+
+  
 }
 
 //Ultrasonic Function
