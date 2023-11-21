@@ -61,8 +61,8 @@ NexButton nutritionControlOff = NexButton(10, 6, "b5");
 NexButton humidityControlOn = NexButton(10, 7, "b6");
 NexButton humidityControlOff = NexButton(10, 8, "b7");
 
-NexButton closeLoopMode = NexButton(10, 10, "b9");
-NexButton openLoopMode = NexButton(10, 11, "b10");
+NexButton openLoopMode = NexButton(10, 10, "b9");
+NexButton closeLoopMode = NexButton(10, 11, "b10");
 
 NexTouch *nex_listen_list[] = 
 {
@@ -79,13 +79,13 @@ NexTouch *nex_listen_list[] =
 
 NexTouch *changeModeList[] =
 {
-  &closeLoopMode,
   &openLoopMode,
+  &closeLoopMode,
   NULL
 };
 
 //Monitoring Variables
-float soilPercentage;
+float soilMoisture;
 float waterLevel;
 float temperature;
 float humidity;
@@ -147,21 +147,20 @@ void humiditySetOff(void *ptr)
   digitalWrite(relayMistPin, LOW); 
 }
 
-void setCloseLoopMode(void *ptr)
-{
-  operationMode = 0;
-}
-
 void setOpenLoopMode(void *ptr)
 {
   operationMode = 1;
 }
 
+void setCloseLoopMode(void *ptr)
+{
+  operationMode = 0;
+}
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  Serial1.begin(115200);
+  Serial3.begin(115200);
   nexInit();
   myDHT.begin();
   Wire.begin();
@@ -190,8 +189,8 @@ void setup() {
   nutritionControlOff.attachPush(nutritionSetOff);
   humidityControlOn.attachPush(humiditySetOn);
   humidityControlOff.attachPush(humiditySetOff);
-  closeLoopMode.attachPush(setCloseLoopMode);
   openLoopMode.attachPush(setOpenLoopMode);
+  closeLoopMode.attachPush(setCloseLoopMode);
 }
 
 void loop() {
@@ -204,43 +203,75 @@ void loop() {
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  Serial.print("soilPH.x0.val=");
+  Serial.print(soilPH);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(soilPH < 6.5)
+  {
+    Serial.print("soilPH.t1.txt=");
+    Serial.print("Acidic");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(soilPH > 7.5)
+  {
+    Serial.print("soilPH.t1.txt=");
+    Serial.print("Alkaline");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("soilPH.t1.txt=");
+    Serial.print("Neutral");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
   soilPHWave.addValue(0, readPH);
 
-  //Monitoring Light Intensity use BH1750
-  readLux = luxMeter.readLightLevel();
-  Serial.print("mainPage.x7.val=");
-  Serial.print(readLux);
+  //WaterPump for Hydroponics Set-Up use Soil Moist sensor
+  readSoil = analogRead(soilPin);
+  soilMoisture = map(readSoil, 0, 1023, 100, 0);
+  Serial.print("mainPage.x1.val=");
+  Serial.print(soilMoisture);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
-  lightnessWave.addValue(0, readLux);
-
-  //Monitoring pH and Temp of Water and Nutrition use PH4502C
-  waterPH = PH4502C.read_ph_level();
-  Serial.print("mainPage.x3.val=");
-  Serial.print(waterPH);
+  Serial.print("soilMoist.x0.val=");
+  Serial.print(soilMoisture);
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
-  waterPHWave.addValue(0, waterPH);
-
-  waterTemp = PH4502C.read_temp();
-  Serial.print("mainPage.x4.val=");
-  Serial.print(waterTemp);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  waterTempWave.addValue(0, waterTemp);
-
-  //WaterPump for Tank Set-Up use Ultrasonic sensor
-  Distance = getDistance();
-  waterLevel = map(Distance, 20, 5, 0, 100);
-  Serial.print("mainPage.x5.val=");
-  Serial.print(waterLevel);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  waterLevelWave.addValue(0, waterLevel);
+  if(soilMoisture < 50)
+  {
+    Serial.print("soilMoist.t1.txt=");
+    Serial.print("Dry");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(soilMoisture > 70)
+  {
+    Serial.print("soilMoist.t1.txt=");
+    Serial.print("Too Wet");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("soilMoist.t1.txt=");
+    Serial.print("Hydrated");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  soilMoistureWave.addValue(0, soilMoisture);
 
   //Monitoring myTDS and Setting up the Nutrition use TDS sensor
   myTDS.setTemperature(waterTemp); //or use "temperature" from DHT22
@@ -251,7 +282,150 @@ void loop() {
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  Serial.print("nutritionTDS.x0.val=");
+  Serial.print(tdsValue);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(tdsValue < 800)
+  {
+    Serial.print("nutritionTDS.t1.txt=");
+    Serial.print("Low");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(tdsValue > 1500)
+  {
+    Serial.print("nutritionTDS.t1.txt=");
+    Serial.print("Over");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("nutritionTDS.t1.txt=");
+    Serial.print("Optimum");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
   nutritionWave.addValue(0, tdsValue);
+
+  //Monitoring pH and Temp of Water and Nutrition use PH4502C
+  waterPH = PH4502C.read_ph_level();
+  Serial.print("mainPage.x3.val=");
+  Serial.print(waterPH);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.print("waterPH.x0.val=");
+  Serial.print(waterPH);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(waterPH < 6.5)
+  {
+    Serial.print("waterPH.t1.txt=");
+    Serial.print("Acidic");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(waterPH > 7.5)
+  {
+    Serial.print("waterPH.t1.txt=");
+    Serial.print("Alkaline");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("waterPH.t1.txt=");
+    Serial.print("Neutral");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  waterPHWave.addValue(0, waterPH);
+
+  waterTemp = PH4502C.read_temp();
+  Serial.print("mainPage.x4.val=");
+  Serial.print(waterTemp);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.print("waterTemp.x0.val=");
+  Serial.print(waterTemp);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(waterTemp < 20)
+  {
+    Serial.print("waterTemp.t1.txt=");
+    Serial.print("Cool");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(waterTemp > 40)
+  {
+    Serial.print("waterTemp.t1.txt=");
+    Serial.print("Hot");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("waterTemp.t1.txt=");
+    Serial.print("Normal");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  waterTempWave.addValue(0, waterTemp);
+  
+  //WaterPump for Tank Set-Up use Ultrasonic sensor
+  Distance = getDistance();
+  waterLevel = map(Distance, 20, 5, 0, 100);
+  Serial.print("mainPage.x5.val=");
+  Serial.print(waterLevel);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.print("waterLevel.x0.val=");
+  Serial.print(waterLevel);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(waterLevel < 20)
+  {
+    Serial.print("waterLevel.t1.txt=");
+    Serial.print("Low");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(waterLevel > 80)
+  {
+    Serial.print("waterlevel.t1.txt=");
+    Serial.print("High");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("waterLevel.t1.txt=");
+    Serial.print("Moderate");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  waterLevelWave.addValue(0, waterLevel);
 
   //MistMaker and DHT Set-Up use DHT22 sensor
   temperature = myDHT.readTemperature();
@@ -260,7 +434,74 @@ void loop() {
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  Serial.print("temperature.x0.val=");
+  Serial.print(temperature);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(temperature < 20)
+  {
+    Serial.print("temperature.t1.txt=");
+    Serial.print("Cool");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(temperature > 40)
+  {
+    Serial.print("temperature.t1.txt=");
+    Serial.print("Hot");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("temperature.t1.txt=");
+    Serial.print("Normal");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
   temperatureWave.addValue(0, temperature);
+
+  //Monitoring Light Intensity use BH1750
+  readLux = luxMeter.readLightLevel();
+  Serial.print("mainPage.x7.val=");
+  Serial.print(readLux);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.print("lightness.x0.val=");
+  Serial.print(readLux);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(readLux < 10000)
+  {
+    Serial.print("lightness.t1.txt=");
+    Serial.print("Low");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(readLux > 30000)
+  {
+    Serial.print("lightness.t1.txt=");
+    Serial.print("High");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("lightness.t1.txt=");
+    Serial.print("Optimum");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  lightnessWave.addValue(0, readLux);
 
   humidity = myDHT.readHumidity();
   Serial.print("mainPage.x8.val=");
@@ -268,40 +509,66 @@ void loop() {
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(0xff);
+  Serial.print("humidity.x0.val=");
+  Serial.print(humidity);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(0xff);
+  if(humidity < 60)
+  {
+    Serial.print("humidity.t1.txt=");
+    Serial.print("Dry");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else if(humidity > 80)
+  {
+    Serial.print("humidity.t1.txt=");
+    Serial.print("Too Humid");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
+  else
+  {
+    Serial.print("humidity.t1.txt=");
+    Serial.print("Optimum");
+    Serial.write(0xff);
+    Serial.write(0xff);
+    Serial.write(0xff);
+  }
   humidityWave.addValue(0, humidity);
-
-  //WaterPump for Hydroponics Set-Up use Soil Moist sensor
-  readSoil = analogRead(soilPin);
-  soilPercentage = map(readSoil, 0, 1023, 100, 0);
-  Serial.print("mainPage.x1.val=");
-  Serial.print(soilPercentage);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  Serial.write(0xff);
-  soilMoistureWave.addValue(0, soilPercentage);
 
   //send data to ESP
   sendToESP = "";
   sendToESP += soilPH;
   sendToESP += ";";
-  sendToESP += readLux;
+  sendToESP += soilMoisture;
+  sendToESP += ";";
+  sendToESP += tdsValue;
   sendToESP += ";";
   sendToESP += waterPH;
   sendToESP += ";";
   sendToESP += waterTemp;
   sendToESP += ";";
   sendToESP += waterLevel;
-  sendToESP += ";";
-  sendToESP += tdsValue;
   sendToESP + ";";
   sendToESP += temperature;
   sendToESP += ";";
-  sendToESP += humidity;
+  sendToESP += readLux;
   sendToESP += ";";
-  sendToESP += soilPercentage;
-  Serial1.println(sendToESP);
+  sendToESP += humidity ;
+  Serial3.println(sendToESP);
 
-  //Logic for fill Water Tank
+  switch(operationMode)
+  {
+    case 1:
+    nexLoop(nex_listen_list);
+    break;
+
+    default:
+    //Logic for fill Water Tank
   if (waterLevel < 100 && waterState == true)
     {
       digitalWrite(waterValvePin, HIGH);
@@ -319,13 +586,6 @@ void loop() {
         }
     }
 
-  switch(operationMode)
-  {
-    case 1:
-    nexLoop(nex_listen_list);
-    break;
-
-    default:
     //Logic for Refill Nutrition 
   if (waterLevel == 100 && tdsValue < 1000 && waterState == false)
     {
@@ -349,7 +609,7 @@ void loop() {
     }
   
   //Logic for Watering the Hydroponics
-  if (soilPercentage <= 70)
+  if (soilMoisture <= 70)
     {
       digitalWrite(relayPump1Pin, HIGH);
     }
@@ -361,8 +621,6 @@ void loop() {
   }
 
   nexLoop(changeModeList);
-
-  
 }
 
 //Ultrasonic Function

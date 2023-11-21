@@ -6,7 +6,7 @@
 const char *ssid = "ITS-WIFI1-2G";  
 const char *password = "itssurabaya";
 
-float soilPH, readLux, waterPH, waterTemp, waterLevel, tdsValue, temperature, humidity, soilPercentage;
+float soilPH, readLux, waterPH, waterTemp, waterLevel, tdsValue, temperature, humidity, soilMoisture;
 
 void setup() {
   // put your setup code here, to run once:
@@ -61,14 +61,14 @@ void loop() {
       delay(50);
     }
     soilPH = splitString(msg, ';', 0).toFloat();
-    readLux = splitString(msg, ';', 1).toFloat();
-    waterPH = splitString(msg, ';', 2).toFloat();
-    waterTemp = splitString(msg, ';', 3).toFloat();
-    waterLevel = splitString(msg, ';', 4).toFloat();
-    tdsValue = splitString(msg, ';', 5).toFloat();
+    soilMoisture = splitString(msg, ';', 1).toFloat();
+    tdsValue = splitString(msg, ';', 2).toFloat();
+    waterPH = splitString(msg, ';', 3).toFloat();
+    waterTemp = splitString(msg, ';', 4).toFloat();
+    waterLevel = splitString(msg, ';', 5).toFloat();
     temperature = splitString(msg, ';', 6).toFloat();
-    humidity = splitString(msg, ';', 7).toFloat();
-    soilPercentage = splitString(msg, ';', 8).toFloat();
+    readLux = splitString(msg, ';', 7).toFloat();
+    humidity = splitString(msg, ';', 8).toFloat();
     sendDataToServer();
 //    Serial.print(msg);
   }
@@ -81,24 +81,25 @@ void sendDataToServer(){
   //Post Data
   postData = "soil_ph=";
   postData += soilPH;
-  postData += "&lightness=";
-  postData += readLux;
+  postData += "&soil_moisture=";
+  postData += soilMoisture;
+  postData += "&nutrition_tds=";
+  postData += tdsValue;
   postData += "&water_ph=";
   postData += waterPH;
   postData += "&water_temp=";
   postData += waterTemp;
   postData += "&water_level=";
   postData += waterLevel;
-  postData += "&nutrition_tds=";
-  postData += tdsValue;
   postData += "&temperature=";
   postData += temperature;
+  postData += "&lightness=";
+  postData += readLux;
   postData += "&humidity=";
   postData += humidity;
-  postData += "&soil_moisture=";
-  postData += soilPercentage;
   
-  http.begin(client, "http://10.8.108.42/AnggurQare_v1.0/server.php");
+  
+  http.begin(client, "http://10.100.21.82/AnggurQare_v1.0/server.php");
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
       
   int httpCode = http.POST(postData);   //Send the request
